@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modernes Interaktives Pokédex</title>
+    <style>
+        /* Import der Schriften */
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Roboto:wght@400;500;700&display=swap');
+
+        /* CSS-Variablen für ein konsistentes Design-System */
+        :root {
+            --bg-body: #f0f2f5;
+            --bg-panel: #ffffff;
+            --text-primary: #1c1e21;
+            --text-secondary: #606770;
+            --border-color: #dce1e6;
+            --accent-primary: #007bff;
+            --accent-primary-light: #e6f2ff;
+            --accent-compare: #28a745;
+            --accent-compare-light: #d4edda;
+            --shadow-light: 0 1px 2px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --font-main: 'Roboto', sans-serif;
+            --font-retro: 'Press Start 2P', cursive;
+        }
+
+        /* Globale Stile & Resets */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-main);
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Hauptcontainer mit Zwei-Spalten-Layout (30% / 70%) */
+        .pokedex-container {
+            display: grid;
+            grid-template-columns: 30% 1fr;
+            gap: 20px;
+            width: 100%;
+            max-width: 1500px;
+            height: 90vh;
+            max-height: 850px;
+        }
+
+        /* --- Linke Spalte: Pokémon-Menü --- */
+        .pokedex-menu {
+            background-color: var(--bg-panel);
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-medium);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .menu-header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-panel);
+            z-index: 10;
+        }
+
+        .menu-header h1 {
+            font-family: var(--font-retro);
+            margin: 0;
+            font-size: 1.3em;
+        }
+
+        .menu-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .menu-controls button {
+            background-color: #f0f2f5;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            width: 44px;
+            height: 40px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.2s ease;
+            font-family: var(--font-main);
+            font-weight: 700;
+            font-size: 0.9em;
+        }
+        .menu-controls button:hover {
+            background-color: #e4e6eb;
+            border-color: #cdd2d8;
+        }
+        .menu-controls button.active {
+            background-color: var(--accent-primary-light);
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        .menu-controls button#compare-toggle-btn.active {
+            background-color: var(--accent-compare-light);
+            border-color: var(--accent-compare);
+            color: var(--accent-compare);
+        }
+        .menu-controls button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .pokemon-list {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding: 10px 20px;
+        }
+
+        /* Listen-Ansicht */
+        .pokemon-list.list-view { display: flex; flex-direction: column; gap: 5px; }
+        .family-separator { padding-top: 10px; margin-top: 10px; border-top: 1px dashed var(--border-color); }
+        .family-separator:first-child { border-top: none; margin-top: 0; padding-top: 0; }
+
+        .list-item {
+            display: grid; grid-template-columns: 35px 50px 1fr; align-items: center; gap: 15px; padding: 10px;
+            border-radius: 8px; cursor: pointer; border: 2px solid transparent; background-color: #f8f9fa; transition: border-color 0.2s;
+        }
+        .list-item:hover { border-color: var(--accent-primary); z-index: 10; position: relative; }
+        .list-item.selected { background-color: var(--accent-primary-light); border-color: var(--accent-primary); }
+        .list-item.compare-selected { background-color: var(--accent-compare-light); border-color: var(--accent-compare); }
+
+        .list-item .id { color: var(--text-secondary); font-weight: 500; }
+        .list-item img { width: 40px; height: 40px; image-rendering: pixelated; }
+        .list-item .info .name { font-weight: 700; text-transform: capitalize; margin-bottom: 4px; }
+        .list-item-types { display: flex; gap: 4px; }
+        .list-item-types .type-badge { padding: 2px 8px; font-size: 0.7em; }
+
+        /* Grid-Ansicht */
+        .pokemon-list.grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)); gap: 10px; }
+        .grid-item {
+            width: 100%; aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center; background-color: #f8f9fa;
+            border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s;
+        }
+        .grid-item:hover { border-color: var(--accent-primary); z-index: 10; position: relative; }
+        .grid-item.selected { background-color: var(--accent-primary-light); border-color: var(--accent-primary); }
+        .grid-item.compare-selected { background-color: var(--accent-compare-light); border-color: var(--accent-compare); }
+        .grid-item img { width: 80%; height: 80%; image-rendering: pixelated; }
+
+        /* --- Rechte Spalte: Detailansicht --- */
+        .pokedex-main-view {
+            border-radius: 16px; overflow: hidden; position: relative;
+            display: flex;
+            transition: background 0.5s ease-in-out;
+            box-shadow: var(--shadow-medium); border: 1px solid var(--border-color);
+        }
+
+        .pokemon-card {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: flex-start; text-align: center; padding: 40px 20px; width: 100%; height: 100%;
+            transition: transform 0.5s ease-in-out, width 0.5s ease-in-out;
+        }
+        
+        .pokemon-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .main-sprite {
+            /* width und height werden per inline-style gesetzt */
+            max-width: 300px; /* Sicherheitsnetz */
+            max-height: 300px;
+            image-rendering: pixelated; filter: drop-shadow(0 8px 15px rgba(0,0,0,0.25));
+            animation: bobbing 3s ease-in-out infinite; margin-bottom: 20px;
+        }
+        @keyframes bobbing { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        
+        .pokemon-card.winner .main-sprite { animation: winner-bobbing 1.5s ease-in-out infinite; }
+        @keyframes winner-bobbing { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-20px) scale(1.05); } }
+
+        .pokemon-info h2 { font-family: var(--font-retro); font-size: clamp(1.8em, 4vw, 2.5em); margin: 0; text-transform: capitalize; }
+        .pokemon-info .id { font-family: var(--font-retro); font-size: clamp(1em, 2vw, 1.2em); color: var(--text-secondary); margin: 5px 0 15px 0; }
+        
+        .type-badges { display: flex; gap: 10px; }
+        .type-badge { padding: 8px 16px; border-radius: 20px; font-size: 0.9em; font-weight: 700; color: white; text-transform: uppercase; box-shadow: var(--shadow-light); }
+        
+        .stats-container, .stats-comparison { width: 100%; max-width: 450px; }
+        .stat-row { display: grid; grid-template-columns: 100px 1fr 40px; gap: 10px; align-items: center; margin-bottom: 12px; }
+        .stat-name { font-weight: 500; text-transform: capitalize; text-align: right; font-size: 0.9em; }
+        .stat-bar-bg { background-color: #e9ecef; border-radius: 5px; height: 12px; overflow: hidden; }
+        .stat-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease-out; }
+        .stat-value { font-weight: 700; font-size: 0.9em; }
+
+        .stat-bar-fill.highlight { animation: pulse-glow 2s infinite ease-in-out; }
+        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 5px 2px transparent; } 50% { box-shadow: 0 0 10px 3px var(--color); } }
+
+        /* Vergleichsmodus */
+        #comparison-view { display: flex; width: 100%; height: 100%; }
+        #comparison-view .pokemon-card { width: 50%; }
+
+        .compare-stat-row { display: grid; grid-template-columns: 1fr 100px 1fr; gap: 5px; align-items: center; margin-bottom: 12px; }
+        .compare-stat-row .stat-name { grid-column: 2; text-align: center; }
+        .compare-stat-bar-bg { background-color: #e9ecef; border-radius: 5px; height: 12px; overflow: hidden; display: flex;}
+        .compare-stat-row .left { justify-content: flex-end; }
+        .compare-stat-row .right { justify-content: flex-start; }
+
+        .comparison-hint {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        
+        /* Scrollbar-Styling */
+        .pokemon-list::-webkit-scrollbar { width: 8px; }
+        .pokemon-list::-webkit-scrollbar-track { background: transparent; }
+        .pokemon-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .pokemon-list::-webkit-scrollbar-thumb:hover { background: #aaa; }
+    </style>
+</head>
+<body>
+    <div class="pokedex-container">
+        <!-- Linke Spalte: Menü -->
+        <aside class="pokedex-menu">
+            <header class="menu-header">
+                <h1>Pokédex</h1>
+                <div class="menu-controls">
+                    <button id="lang-switcher-btn" title="Sprache wechseln">DE</button>
+                    <button id="view-switcher-btn" title="Ansicht wechseln"></button>
+                    <button id="compare-toggle-btn" title="Vergleichsmodus">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="currentColor"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M16 19.5L12 16.5L8 19.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M16 4.5L12 7.5L8 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> <path d="M12 7.5V16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path> </g></svg>
+                    </button>
+                </div>
+            </header>
+            <div id="pokemon-list" class="pokemon-list"></div>
+        </aside>
+
+        <!-- Rechte Spalte: Detail & Vergleichsansicht -->
+        <main id="pokedex-main-view" class="pokedex-main-view"></main>
+    </div>
+
+    <script>
+    // ######################################################
+    // #           DATEN & KONFIGURATION (DE/EN)            #
+    // ######################################################
+    // Hinzugefügt: `height` in Metern für die visuelle Größenanpassung
+    const pokemonData = [
+        { id: 1, name: { de: 'Bisasam', en: 'Bulbasaur' }, height: 0.7, types: ['grass', 'poison'], stats: { de: { kp: 45, angriff: 49, vert: 49, 'sp-ang': 65, 'sp-ver': 65, init: 45 }, en: { hp: 45, attack: 49, defense: 49, 'sp-atk': 65, 'sp-def': 65, speed: 45 } }, evolutions: { prev: null, next: 2 } },
+        { id: 2, name: { de: 'Bisaknosp', en: 'Ivysaur' }, height: 1.0, types: ['grass', 'poison'], stats: { de: { kp: 60, angriff: 62, vert: 63, 'sp-ang': 80, 'sp-ver': 80, init: 60 }, en: { hp: 60, attack: 62, defense: 63, 'sp-atk': 80, 'sp-def': 80, speed: 60 } }, evolutions: { prev: 1, next: 3 } },
+        { id: 3, name: { de: 'Bisaflor', en: 'Venusaur' }, height: 2.0, types: ['grass', 'poison'], stats: { de: { kp: 80, angriff: 82, vert: 83, 'sp-ang': 100, 'sp-ver': 100, init: 80 }, en: { hp: 80, attack: 82, defense: 83, 'sp-atk': 100, 'sp-def': 100, speed: 80 } }, evolutions: { prev: 2, next: null } },
+        { id: 4, name: { de: 'Glumanda', en: 'Charmander' }, height: 0.6, types: ['fire'], stats: { de: { kp: 39, angriff: 52, vert: 43, 'sp-ang': 60, 'sp-ver': 50, init: 65 }, en: { hp: 39, attack: 52, defense: 43, 'sp-atk': 60, 'sp-def': 50, speed: 65 } }, evolutions: { prev: null, next: 5 } },
+        { id: 5, name: { de: 'Glutexo', en: 'Charmeleon' }, height: 1.1, types: ['fire'], stats: { de: { kp: 58, angriff: 64, vert: 58, 'sp-ang': 80, 'sp-ver': 65, init: 80 }, en: { hp: 58, attack: 64, defense: 58, 'sp-atk': 80, 'sp-def': 65, speed: 80 } }, evolutions: { prev: 4, next: 6 } },
+        { id: 6, name: { de: 'Glurak', en: 'Charizard' }, height: 1.7, types: ['fire', 'flying'], stats: { de: { kp: 78, angriff: 84, vert: 78, 'sp-ang': 109, 'sp-ver': 85, init: 100 }, en: { hp: 78, attack: 84, defense: 78, 'sp-atk': 109, 'sp-def': 85, speed: 100 } }, evolutions: { prev: 5, next: null } },
+        { id: 7, name: { de: 'Schiggy', en: 'Squirtle' }, height: 0.5, types: ['water'], stats: { de: { kp: 44, angriff: 48, vert: 65, 'sp-ang': 50, 'sp-ver': 64, init: 43 }, en: { hp: 44, attack: 48, defense: 65, 'sp-atk': 50, 'sp-def': 64, speed: 43 } }, evolutions: { prev: null, next: 8 } },
+        { id: 8, name: { de: 'Schillok', en: 'Wartortle' }, height: 1.0, types: ['water'], stats: { de: { kp: 59, angriff: 63, vert: 80, 'sp-ang': 65, 'sp-ver': 80, init: 58 }, en: { hp: 59, attack: 63, defense: 80, 'sp-atk': 65, 'sp-def': 80, speed: 58 } }, evolutions: { prev: 7, next: 9 } },
+        { id: 9, name: { de: 'Turtok', en: 'Blastoise' }, height: 1.6, types: ['water'], stats: { de: { kp: 79, angriff: 83, vert: 100, 'sp-ang': 85, 'sp-ver': 105, init: 78 }, en: { hp: 79, attack: 83, defense: 100, 'sp-atk': 85, 'sp-def': 105, speed: 78 } }, evolutions: { prev: 8, next: null } },
+        { id: 10, name: { de: 'Raupy', en: 'Caterpie' }, height: 0.3, types: ['bug'], stats: { de: { kp: 45, angriff: 30, vert: 35, 'sp-ang': 20, 'sp-ver': 20, init: 45 }, en: { hp: 45, attack: 30, defense: 35, 'sp-atk': 20, 'sp-def': 20, speed: 45 } }, evolutions: { prev: null, next: 11 } },
+        { id: 11, name: { de: 'Safcon', en: 'Metapod' }, height: 0.7, types: ['bug'], stats: { de: { kp: 50, angriff: 20, vert: 55, 'sp-ang': 25, 'sp-ver': 25, init: 30 }, en: { hp: 50, attack: 20, defense: 55, 'sp-atk': 25, 'sp-def': 25, speed: 30 } }, evolutions: { prev: 10, next: 12 } },
+        { id: 12, name: { de: 'Smettbo', en: 'Butterfree' }, height: 1.1, types: ['bug', 'flying'], stats: { de: { kp: 60, angriff: 45, vert: 50, 'sp-ang': 90, 'sp-ver': 80, init: 70 }, en: { hp: 60, attack: 45, defense: 50, 'sp-atk': 90, 'sp-def': 80, speed: 70 } }, evolutions: { prev: 11, next: null } },
+        { id: 13, name: { de: 'Hornliu', en: 'Weedle' }, height: 0.3, types: ['bug', 'poison'], stats: { de: { kp: 40, angriff: 35, vert: 30, 'sp-ang': 20, 'sp-ver': 20, init: 50 }, en: { hp: 40, attack: 35, defense: 30, 'sp-atk': 20, 'sp-def': 20, speed: 50 } }, evolutions: { prev: null, next: 14 } },
+        { id: 14, name: { de: 'Kokuna', en: 'Kakuna' }, height: 0.6, types: ['bug', 'poison'], stats: { de: { kp: 45, angriff: 25, vert: 50, 'sp-ang': 25, 'sp-ver': 25, init: 35 }, en: { hp: 45, attack: 25, defense: 50, 'sp-atk': 25, 'sp-def': 25, speed: 35 } }, evolutions: { prev: 13, next: 15 } },
+        { id: 15, name: { de: 'Bibor', en: 'Beedrill' }, height: 1.0, types: ['bug', 'poison'], stats: { de: { kp: 65, angriff: 90, vert: 40, 'sp-ang': 45, 'sp-ver': 80, init: 75 }, en: { hp: 65, attack: 90, defense: 40, 'sp-atk': 45, 'sp-def': 80, speed: 75 } }, evolutions: { prev: 14, next: null } },
+        { id: 16, name: { de: 'Taubsi', en: 'Pidgey' }, height: 0.3, types: ['normal', 'flying'], stats: { de: { kp: 40, angriff: 45, vert: 40, 'sp-ang': 35, 'sp-ver': 35, init: 56 }, en: { hp: 40, attack: 45, defense: 40, 'sp-atk': 35, 'sp-def': 35, speed: 56 } }, evolutions: { prev: null, next: 17 } },
+        { id: 17, name: { de: 'Tauboga', en: 'Pidgeotto' }, height: 1.1, types: ['normal', 'flying'], stats: { de: { kp: 63, angriff: 60, vert: 55, 'sp-ang': 50, 'sp-ver': 50, init: 71 }, en: { hp: 63, attack: 60, defense: 55, 'sp-atk': 50, 'sp-def': 50, speed: 71 } }, evolutions: { prev: 16, next: 18 } },
+        { id: 18, name: { de: 'Tauboss', en: 'Pidgeot' }, height: 1.5, types: ['normal', 'flying'], stats: { de: { kp: 83, angriff: 80, vert: 75, 'sp-ang': 70, 'sp-ver': 70, init: 101 }, en: { hp: 83, attack: 80, defense: 75, 'sp-atk': 70, 'sp-def': 70, speed: 101 } }, evolutions: { prev: 17, next: null } },
+        { id: 19, name: { de: 'Rattfratz', en: 'Rattata' }, height: 0.3, types: ['normal'], stats: { de: { kp: 30, angriff: 56, vert: 35, 'sp-ang': 25, 'sp-ver': 35, init: 72 }, en: { hp: 30, attack: 56, defense: 35, 'sp-atk': 25, 'sp-def': 35, speed: 72 } }, evolutions: { prev: null, next: 20 } },
+        { id: 20, name: { de: 'Rattikarl', en: 'Raticate' }, height: 0.7, types: ['normal'], stats: { de: { kp: 55, angriff: 81, vert: 60, 'sp-ang': 50, 'sp-ver': 70, init: 97 }, en: { hp: 55, attack: 81, defense: 60, 'sp-atk': 50, 'sp-def': 70, speed: 97 } }, evolutions: { prev: 19, next: null } },
+        { id: 21, name: { de: 'Habitak', en: 'Spearow' }, height: 0.3, types: ['normal', 'flying'], stats: { de: { kp: 40, angriff: 60, vert: 30, 'sp-ang': 31, 'sp-ver': 31, init: 70 }, en: { hp: 40, attack: 60, defense: 30, 'sp-atk': 31, 'sp-def': 31, speed: 70 } }, evolutions: { prev: null, next: 22 } },
+        { id: 22, name: { de: 'Ibitak', en: 'Fearow' }, height: 1.2, types: ['normal', 'flying'], stats: { de: { kp: 65, angriff: 90, vert: 65, 'sp-ang': 61, 'sp-ver': 61, init: 100 }, en: { hp: 65, attack: 90, defense: 65, 'sp-atk': 61, 'sp-def': 61, speed: 100 } }, evolutions: { prev: 21, next: null } },
+        { id: 23, name: { de: 'Rettan', en: 'Ekans' }, height: 2.0, types: ['poison'], stats: { de: { kp: 35, angriff: 60, vert: 44, 'sp-ang': 40, 'sp-ver': 54, init: 55 }, en: { hp: 35, attack: 60, defense: 44, 'sp-atk': 40, 'sp-def': 54, speed: 55 } }, evolutions: { prev: null, next: 24 } },
+        { id: 24, name: { de: 'Arbok', en: 'Arbok' }, height: 3.5, types: ['poison'], stats: { de: { kp: 60, angriff: 95, vert: 69, 'sp-ang': 65, 'sp-ver': 79, init: 80 }, en: { hp: 60, attack: 95, defense: 69, 'sp-atk': 65, 'sp-def': 79, speed: 80 } }, evolutions: { prev: 23, next: null } },
+        { id: 25, name: { de: 'Pikachu', en: 'Pikachu' }, height: 0.4, types: ['electric'], stats: { de: { kp: 35, angriff: 55, vert: 40, 'sp-ang': 50, 'sp-ver': 50, init: 90 }, en: { hp: 35, attack: 55, defense: 40, 'sp-atk': 50, 'sp-def': 50, speed: 90 } }, evolutions: { prev: null, next: 26 } },
+        { id: 26, name: { de: 'Raichu', en: 'Raichu' }, height: 0.8, types: ['electric'], stats: { de: { kp: 60, angriff: 90, vert: 55, 'sp-ang': 90, 'sp-ver': 80, init: 110 }, en: { hp: 60, attack: 90, defense: 55, 'sp-atk': 90, 'sp-def': 80, speed: 110 } }, evolutions: { prev: 25, next: null } },
+        { id: 27, name: { de: 'Sandan', en: 'Sandshrew' }, height: 0.6, types: ['ground'], stats: { de: { kp: 50, angriff: 75, vert: 85, 'sp-ang': 20, 'sp-ver': 30, init: 40 }, en: { hp: 50, attack: 75, defense: 85, 'sp-atk': 20, 'sp-def': 30, speed: 40 } }, evolutions: { prev: null, next: 28 } },
+        { id: 28, name: { de: 'Sandamer', en: 'Sandslash' }, height: 1.0, types: ['ground'], stats: { de: { kp: 75, angriff: 100, vert: 110, 'sp-ang': 45, 'sp-ver': 55, init: 65 }, en: { hp: 75, attack: 100, defense: 110, 'sp-atk': 45, 'sp-def': 55, speed: 65 } }, evolutions: { prev: 27, next: null } },
+        { id: 29, name: { de: 'Nidoran♀', en: 'Nidoran♀' }, height: 0.4, types: ['poison'], stats: { de: { kp: 55, angriff: 47, vert: 52, 'sp-ang': 40, 'sp-ver': 40, init: 41 }, en: { hp: 55, attack: 47, defense: 52, 'sp-atk': 40, 'sp-def': 40, speed: 41 } }, evolutions: { prev: null, next: 30 } },
+        { id: 30, name: { de: 'Nidorina', en: 'Nidorina' }, height: 0.8, types: ['poison'], stats: { de: { kp: 70, angriff: 62, vert: 67, 'sp-ang': 55, 'sp-ver': 55, init: 56 }, en: { hp: 70, attack: 62, defense: 67, 'sp-atk': 55, 'sp-def': 55, speed: 56 } }, evolutions: { prev: 29, next: 31 } },
+        { id: 31, name: { de: 'Nidoqueen', en: 'Nidoqueen' }, height: 1.3, types: ['poison', 'ground'], stats: { de: { kp: 90, angriff: 92, vert: 87, 'sp-ang': 75, 'sp-ver': 85, init: 76 }, en: { hp: 90, attack: 92, defense: 87, 'sp-atk': 75, 'sp-def': 85, speed: 76 } }, evolutions: { prev: 30, next: null } },
+        { id: 32, name: { de: 'Nidoran♂', en: 'Nidoran♂' }, height: 0.5, types: ['poison'], stats: { de: { kp: 46, angriff: 57, vert: 40, 'sp-ang': 40, 'sp-ver': 40, init: 50 }, en: { hp: 46, attack: 57, defense: 40, 'sp-atk': 40, 'sp-def': 40, speed: 50 } }, evolutions: { prev: null, next: 33 } },
+        { id: 33, name: { de: 'Nidorino', en: 'Nidorino' }, height: 0.9, types: ['poison'], stats: { de: { kp: 61, angriff: 72, vert: 57, 'sp-ang': 55, 'sp-ver': 55, init: 65 }, en: { hp: 61, attack: 72, defense: 57, 'sp-atk': 55, 'sp-def': 55, speed: 65 } }, evolutions: { prev: 32, next: 34 } },
+        { id: 34, name: { de: 'Nidoking', en: 'Nidoking' }, height: 1.4, types: ['poison', 'ground'], stats: { de: { kp: 81, angriff: 102, vert: 77, 'sp-ang': 85, 'sp-ver': 75, init: 85 }, en: { hp: 81, attack: 102, defense: 77, 'sp-atk': 85, 'sp-def': 75, speed: 85 } }, evolutions: { prev: 33, next: null } },
+        { id: 35, name: { de: 'Piepi', en: 'Clefairy' }, height: 0.6, types: ['fairy'], stats: { de: { kp: 70, angriff: 45, vert: 48, 'sp-ang': 60, 'sp-ver': 65, init: 35 }, en: { hp: 70, attack: 45, defense: 48, 'sp-atk': 60, 'sp-def': 65, speed: 35 } }, evolutions: { prev: null, next: 36 } },
+        { id: 36, name: { de: 'Pixi', en: 'Clefable' }, height: 1.3, types: ['fairy'], stats: { de: { kp: 95, angriff: 70, vert: 73, 'sp-ang': 95, 'sp-ver': 90, init: 60 }, en: { hp: 95, attack: 70, defense: 73, 'sp-atk': 95, 'sp-def': 90, speed: 60 } }, evolutions: { prev: 35, next: null } },
+        { id: 37, name: { de: 'Vulpix', en: 'Vulpix' }, height: 0.6, types: ['fire'], stats: { de: { kp: 38, angriff: 41, vert: 40, 'sp-ang': 50, 'sp-ver': 65, init: 65 }, en: { hp: 38, attack: 41, defense: 40, 'sp-atk': 50, 'sp-def': 65, speed: 65 } }, evolutions: { prev: null, next: 38 } },
+        { id: 38, name: { de: 'Vulnona', en: 'Ninetales' }, height: 1.1, types: ['fire'], stats: { de: { kp: 73, angriff: 76, vert: 75, 'sp-ang': 81, 'sp-ver': 100, init: 100 }, en: { hp: 73, attack: 76, defense: 75, 'sp-atk': 81, 'sp-def': 100, speed: 100 } }, evolutions: { prev: 37, next: null } },
+        { id: 39, name: { de: 'Pummeluff', en: 'Jigglypuff' }, height: 0.5, types: ['normal', 'fairy'], stats: { de: { kp: 115, angriff: 45, vert: 20, 'sp-ang': 45, 'sp-ver': 25, init: 20 }, en: { hp: 115, attack: 45, defense: 20, 'sp-atk': 45, 'sp-def': 25, speed: 20 } }, evolutions: { prev: null, next: 40 } },
+        { id: 40, name: { de: 'Knuddeluff', en: 'Wigglytuff' }, height: 1.0, types: ['normal', 'fairy'], stats: { de: { kp: 140, angriff: 70, vert: 45, 'sp-ang': 85, 'sp-ver': 50, init: 45 }, en: { hp: 140, attack: 70, defense: 45, 'sp-atk': 85, 'sp-def': 50, speed: 45 } }, evolutions: { prev: 39, next: null } },
+        { id: 41, name: { de: 'Zubat', en: 'Zubat' }, height: 0.8, types: ['poison', 'flying'], stats: { de: { kp: 40, angriff: 45, vert: 35, 'sp-ang': 30, 'sp-ver': 40, init: 55 }, en: { hp: 40, attack: 45, defense: 35, 'sp-atk': 30, 'sp-def': 40, speed: 55 } }, evolutions: { prev: null, next: 42 } },
+        { id: 42, name: { de: 'Golbat', en: 'Golbat' }, height: 1.6, types: ['poison', 'flying'], stats: { de: { kp: 75, angriff: 80, vert: 70, 'sp-ang': 65, 'sp-ver': 75, init: 90 }, en: { hp: 75, attack: 80, defense: 70, 'sp-atk': 65, 'sp-def': 75, speed: 90 } }, evolutions: { prev: 41, next: null } },
+        { id: 43, name: { de: 'Myrapla', en: 'Oddish' }, height: 0.5, types: ['grass', 'poison'], stats: { de: { kp: 45, angriff: 50, vert: 55, 'sp-ang': 75, 'sp-ver': 65, init: 30 }, en: { hp: 45, attack: 50, defense: 55, 'sp-atk': 75, 'sp-def': 65, speed: 30 } }, evolutions: { prev: null, next: 44 } },
+        { id: 44, name: { de: 'Duflor', en: 'Gloom' }, height: 0.8, types: ['grass', 'poison'], stats: { de: { kp: 60, angriff: 65, vert: 70, 'sp-ang': 85, 'sp-ver': 75, init: 40 }, en: { hp: 60, attack: 65, defense: 70, 'sp-atk': 85, 'sp-def': 75, speed: 40 } }, evolutions: { prev: 43, next: 45 } },
+        { id: 45, name: { de: 'Giflor', en: 'Vileplume' }, height: 1.2, types: ['grass', 'poison'], stats: { de: { kp: 75, angriff: 80, vert: 85, 'sp-ang': 110, 'sp-ver': 90, init: 50 }, en: { hp: 75, attack: 80, defense: 85, 'sp-atk': 110, 'sp-def': 90, speed: 50 } }, evolutions: { prev: 44, next: null } },
+        { id: 46, name: { de: 'Paras', en: 'Paras' }, height: 0.3, types: ['bug', 'grass'], stats: { de: { kp: 35, angriff: 70, vert: 55, 'sp-ang': 45, 'sp-ver': 55, init: 25 }, en: { hp: 35, attack: 70, defense: 55, 'sp-atk': 45, 'sp-def': 55, speed: 25 } }, evolutions: { prev: null, next: 47 } },
+        { id: 47, name: { de: 'Parasek', en: 'Parasect' }, height: 1.0, types: ['bug', 'grass'], stats: { de: { kp: 60, angriff: 95, vert: 80, 'sp-ang': 60, 'sp-ver': 80, init: 30 }, en: { hp: 60, attack: 95, defense: 80, 'sp-atk': 60, 'sp-def': 80, speed: 30 } }, evolutions: { prev: 46, next: null } },
+        { id: 48, name: { de: 'Bluzuk', en: 'Venonat' }, height: 1.0, types: ['bug', 'poison'], stats: { de: { kp: 60, angriff: 55, vert: 50, 'sp-ang': 40, 'sp-ver': 55, init: 45 }, en: { hp: 60, attack: 55, defense: 50, 'sp-atk': 40, 'sp-def': 55, speed: 45 } }, evolutions: { prev: null, next: 49 } },
+        { id: 49, name: { de: 'Omot', en: 'Venomoth' }, height: 1.5, types: ['bug', 'poison'], stats: { de: { kp: 70, angriff: 65, vert: 60, 'sp-ang': 90, 'sp-ver': 75, init: 90 }, en: { hp: 70, attack: 65, defense: 60, 'sp-atk': 90, 'sp-def': 75, speed: 90 } }, evolutions: { prev: 48, next: null } },
+        { id: 50, name: { de: 'Digda', en: 'Diglett' }, height: 0.2, types: ['ground'], stats: { de: { kp: 10, angriff: 55, vert: 25, 'sp-ang': 35, 'sp-ver': 45, init: 95 }, en: { hp: 10, attack: 55, defense: 25, 'sp-atk': 35, 'sp-def': 45, speed: 95 } }, evolutions: { prev: null, next: 51 } },
+    ];
+    
+    // Configs for colors, names, effectiveness, and icons remain the same
+    const typeConfigs = {
+        normal: { color: '#A8A77A', name: { de: 'Normal', en: 'Normal' } }, fire: { color: '#EE8130', name: { de: 'Feuer', en: 'Fire' } }, water: { color: '#6390F0', name: { de: 'Wasser', en: 'Water' } },
+        electric: { color: '#F7D02C', name: { de: 'Elektro', en: 'Electric' } }, grass: { color: '#7AC74C', name: { de: 'Pflanze', en: 'Grass' } }, ice: { color: '#96D9D6', name: { de: 'Eis', en: 'Ice' } },
+        fighting: { color: '#C22E28', name: { de: 'Kampf', en: 'Fighting' } }, poison: { color: '#A33EA1', name: { de: 'Gift', en: 'Poison' } }, ground: { color: '#E2BF65', name: { de: 'Boden', en: 'Ground' } },
+        flying: { color: '#A98FF3', name: { de: 'Flug', en: 'Flying' } }, psychic: { color: '#F95587', name: { de: 'Psycho', en: 'Psychic' } }, bug: { color: '#A6B91A', name: { de: 'Käfer', en: 'Bug' } },
+        rock: { color: '#B6A136', name: { de: 'Gestein', en: 'Rock' } }, ghost: { color: '#735797', name: { de: 'Geist', en: 'Ghost' } }, dragon: { color: '#6F35FC', name: { de: 'Drache', en: 'Dragon' } },
+        dark: { color: '#705746', name: { de: 'Unlicht', en: 'Dark' } }, steel: { color: '#B7B7CE', name: { de: 'Stahl', en: 'Steel' } }, fairy: { color: '#D685AD', name: { de: 'Fee', en: 'Fairy' } },
+    };
+    const typeEffectiveness = {
+        normal: { rock: 0.5, ghost: 0 }, fire: { fire: 0.5, water: 0.5, grass: 2, bug: 2, rock: 0.5 }, water: { fire: 2, water: 0.5, grass: 0.5 },
+        electric: { water: 2, electric: 0.5, ground: 0, flying: 2 }, grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5 },
+        poison: { grass: 2, poison: 0.5, ground: 0.5, bug: 2, ghost: 0.5 }, ground: { fire: 2, electric: 2, grass: 0.5, poison: 2, flying: 0, rock: 2 },
+        flying: { electric: 0.5, grass: 2, fighting: 2, bug: 2, rock: 0.5 }, bug: { fire: 0.5, grass: 2, fighting: 0.5, poison: 2, flying: 0.5, ghost: 0.5 },
+        rock: { fire: 2, fighting: 0.5, ground: 0.5, flying: 2 }, fairy: { fighting: 2, poison: 0.5, dragon: 2 }
+    };
+    const viewIcons = {
+        list: `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,4H21V6H3V4M3,11H21V13H3V11M3,18H21V20H3V18Z" /></svg>`,
+        grid: `<svg viewBox="0 0 24 24"><path fill="currentColor" d="M3,3V11H11V3M9,9H5V5H9M3,13V21H11V13M9,19H5V15H9M13,3V11H21V3M19,9H15V5H19M13,13V21H21V13M19,19H15V15H19Z" /></svg>`
+    };
+    
+    // State & DOM objects remain the same
+    const state = { currentId: 1, viewMode: 'list', isCompareMode: false, comparisonSlots: [null, null], evolutionFamilies: [], language: 'de' };
+    const dom = {
+        menuList: document.getElementById('pokemon-list'), mainView: document.getElementById('pokedex-main-view'),
+        viewSwitcherBtn: document.getElementById('view-switcher-btn'), compareToggleBtn: document.getElementById('compare-toggle-btn'),
+        langSwitcherBtn: document.getElementById('lang-switcher-btn'),
+    };
+    
+    // Initializer and event listeners
+    document.addEventListener('DOMContentLoaded', init);
+    function init() {
+        buildEvolutionFamilies();
+        updateUI();
+        dom.viewSwitcherBtn.addEventListener('click', handleViewToggle);
+        dom.compareToggleBtn.addEventListener('click', handleCompareToggle);
+        dom.langSwitcherBtn.addEventListener('click', handleLanguageToggle);
+    }
+    
+    // Handlers
+    function handlePokemonClick(id) {
+        if (state.isCompareMode && state.comparisonSlots[0] !== id) {
+            state.comparisonSlots[1] = id;
+        } else {
+            state.currentId = id;
+            if (state.isCompareMode) state.comparisonSlots[0] = id;
+        }
+        updateUI();
+    }
+
+    function handleViewToggle() {
+        state.viewMode = state.viewMode === 'list' ? 'grid' : 'list';
+        renderPokemonList();
+        updateViewSwitcherIcon();
+    }
+
+    function handleCompareToggle() {
+        state.isCompareMode = !state.isCompareMode;
+        if (state.isCompareMode) {
+            state.comparisonSlots = [state.currentId, null];
+        } else {
+            state.comparisonSlots = [null, null];
+        }
+        updateUI();
+    }
+
+    function handleLanguageToggle() {
+        state.language = state.language === 'de' ? 'en' : 'de';
+        updateUI();
+    }
+
+    // Main UI Update Function
+    function updateUI() {
+        dom.langSwitcherBtn.textContent = state.language.toUpperCase();
+        dom.compareToggleBtn.classList.toggle('active', state.isCompareMode);
+        renderPokemonList();
+        updateViewSwitcherIcon();
+        
+        const isFullCompare = state.isCompareMode && state.comparisonSlots[1] !== null;
+
+        if (isFullCompare) {
+            displayComparison();
+        } else {
+            const idToShow = state.isCompareMode ? state.comparisonSlots[0] : state.currentId;
+            displaySinglePokemon(idToShow);
+        }
+    }
+
+    // Render Functions
+    function renderPokemonList() {
+        dom.menuList.innerHTML = '';
+        dom.menuList.className = `pokemon-list ${state.viewMode}-view`;
+        if (state.viewMode === 'list') {
+            state.evolutionFamilies.forEach(family => {
+                const familyContainer = document.createElement('div');
+                familyContainer.className = 'family-separator';
+                family.forEach(id => familyContainer.appendChild(createListItem(id)));
+                dom.menuList.appendChild(familyContainer);
+            });
+        } else {
+            pokemonData.forEach(p => dom.menuList.appendChild(createGridItem(p.id)));
+        }
+        updateListSelection();
+    }
+    
+    function displaySinglePokemon(id) {
+        const pokemon = getPokemonById(id);
+        if (!pokemon) return;
+        dom.mainView.innerHTML = createPokemonCardHTML(pokemon);
+        updateBackground(pokemon);
+        // Add a hint if in compare mode but waiting for second selection
+        if (state.isCompareMode && state.comparisonSlots[1] === null) {
+            const hint = document.createElement('div');
+            hint.className = 'comparison-hint';
+            hint.textContent = state.language === 'de' ? 'Wähle ein zweites Pokémon zum Vergleichen' : 'Select a second Pokémon to compare';
+            dom.mainView.appendChild(hint);
+        }
+    }
+
+    function displayComparison() {
+        const [idA, idB] = state.comparisonSlots;
+        const pokemonA = getPokemonById(idA);
+        const pokemonB = getPokemonById(idB);
+        if(!pokemonA || !pokemonB) return;
+
+        const winnerId = calculateWinner(pokemonA, pokemonB);
+        
+        let html = '<div id="comparison-view">';
+        html += createPokemonCardHTML(pokemonA, winnerId === idA);
+        html += createPokemonCardHTML(pokemonB, winnerId === idB);
+        html += '</div>';
+        
+        dom.mainView.innerHTML = html;
+        updateBackground(null, true); // Arena background
+
+        const statsContainerA = dom.mainView.querySelector('#pokemon-card-A .stats-container');
+        statsContainerA.innerHTML = createCompareStatRowsHTML(idA, idB);
+    }
+    
+    function updateListSelection() { /* ... unverändert ... */ 
+        const items = dom.menuList.querySelectorAll('.list-item, .grid-item');
+        items.forEach(item => {
+            const id = parseInt(item.dataset.id);
+            item.classList.remove('selected', 'compare-selected');
+            if (state.isCompareMode) {
+                if (state.comparisonSlots.includes(id)) item.classList.add('compare-selected');
+            } else {
+                if (id === state.currentId) item.classList.add('selected');
+            }
+        });
+    }
+
+    function updateViewSwitcherIcon() { /* ... unverändert ... */ 
+        dom.viewSwitcherBtn.innerHTML = state.viewMode === 'list' ? viewIcons.grid : viewIcons.list;
+    }
+
+    function updateBackground(pokemon, isArena = false) { /* ... unverändert ... */ 
+        if (isArena) {
+            dom.mainView.style.background = 'linear-gradient(135deg, #e0c3a0 0%, #c8d8e4 100%)';
+            return;
+        }
+        const type1 = pokemon.types[0];
+        const type2 = pokemon.types[1] || type1;
+        const color1 = typeConfigs[type1].color;
+        const color2 = typeConfigs[type2].color;
+        dom.mainView.style.background = `linear-gradient(135deg, ${color1}30 0%, ${color2}30 100%)`;
+    }
+
+    // Helper & HTML Generator Functions
+    function buildEvolutionFamilies() { /* ... unverändert ... */ 
+        const processed = new Set();
+        state.evolutionFamilies = [];
+        pokemonData.forEach(p => {
+            if (processed.has(p.id)) return;
+            let current = p;
+            while (current.evolutions.prev) current = getPokemonById(current.evolutions.prev);
+            const family = [];
+            while (current) {
+                family.push(current.id);
+                processed.add(current.id);
+                current = current.evolutions.next ? getPokemonById(current.evolutions.next) : null;
+            }
+            state.evolutionFamilies.push(family);
+        });
+    }
+
+    function createListItem(id) {
+        const pokemon = getPokemonById(id);
+        const item = document.createElement('div');
+        item.className = 'list-item';
+        item.dataset.id = id;
+        const typesHTML = `<div class="list-item-types">${pokemon.types.map(t => `<span class="type-badge" style="background-color: ${typeConfigs[t].color}">${typeConfigs[t].name[state.language]}</span>`).join('')}</div>`;
+        
+        item.innerHTML = `
+            <span class="id">#${String(id).padStart(3, '0')}</span>
+            <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" alt="${pokemon.name[state.language]}">
+            <div class="info">
+                <div class="name">${pokemon.name[state.language]}</div>
+                ${typesHTML}
+            </div>`;
+        item.addEventListener('click', () => handlePokemonClick(id));
+        return item;
+    }
+    
+    function createGridItem(id) { /* ... unverändert ... */ 
+        const pokemon = getPokemonById(id);
+        const item = document.createElement('div');
+        item.className = 'grid-item';
+        item.dataset.id = id;
+        item.innerHTML = `<img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png" alt="${pokemon.name[state.language]}">`;
+        item.addEventListener('click', () => handlePokemonClick(id));
+        return item;
+    }
+    
+    function createPokemonCardHTML(pokemon, isWinner = false) {
+        // Calculate sprite size based on height
+        const baseSize = 80; // px
+        const sizeMultiplier = 80; // px per meter
+        const spriteSize = Math.min(300, Math.max(80, baseSize + pokemon.height * sizeMultiplier));
+        const spriteStyle = `width: ${spriteSize}px; height: ${spriteSize}px;`;
+
+        const cardIdSuffix = state.isCompareMode ? (state.comparisonSlots.indexOf(pokemon.id) === 0 ? 'A' : 'B') : '';
+        const typesHTML = pokemon.types.map(t => `<span class="type-badge" style="background-color: ${typeConfigs[t].color}">${typeConfigs[t].name[state.language]}</span>`).join('');
+        const statsHTML = state.isCompareMode ? '' : Object.entries(pokemon.stats[state.language]).map(([name, value]) => createStatRowHTML(name, value)).join('');
+
+        return `
+        <div id="pokemon-card-${cardIdSuffix}" class="pokemon-card ${isWinner ? 'winner' : ''}">
+            <img class="main-sprite" style="${spriteStyle}" src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/versions/generation-v/black-white/animated/${pokemon.id}.gif" alt="${pokemon.name[state.language]}">
+            <div class="pokemon-info">
+                <h2>${pokemon.name[state.language]}</h2>
+                <p class="id">#${String(pokemon.id).padStart(3, '0')}</p>
+                <div class="type-badges">${typesHTML}</div>
+            </div>
+            <div class="stats-container">${statsHTML}</div>
+        </div>`;
+    }
+
+    function createStatRowHTML(name, value) { /* ... unverändert ... */
+        const maxStat = 150;
+        const percentage = (value / maxStat) * 100;
+        const highlightClass = value > 100 ? 'highlight' : '';
+        const color = percentage > 66 ? '#4caf50' : percentage > 33 ? '#ffc107' : '#f44336';
+        return `
+        <div class="stat-row">
+            <span class="stat-name">${name}</span>
+            <div class="stat-bar-bg"><div class="stat-bar-fill ${highlightClass}" style="width: ${percentage}%; background-color: ${color}; --color: ${color}90;"></div></div>
+            <span class="stat-value">${value}</span>
+        </div>`;
+    }
+    
+    function createCompareStatRowsHTML(idA, idB) { /* ... unverändert ... */ 
+        const pkA = getPokemonById(idA);
+        const pkB = getPokemonById(idB);
+        let rowsHTML = '<div class="stats-comparison">';
+        for (const statName in pkA.stats[state.language]) {
+            const valueA = pkA.stats[state.language][statName];
+            const valueB = pkB.stats[state.language][statName];
+            const maxStat = 150;
+            const percentageA = (valueA / maxStat) * 50;
+            const percentageB = (valueB / maxStat) * 50;
+            const colorA = valueA > valueB ? 'var(--accent-primary)' : 'var(--text-secondary)';
+            const colorB = valueB > valueA ? 'var(--accent-compare)' : 'var(--text-secondary)';
+            rowsHTML += `
+            <div class="compare-stat-row">
+                <div class="compare-stat-bar-bg left"><div class="stat-bar-fill" style="width: ${percentageA}%; background-color: ${colorA};"></div></div>
+                <span class="stat-name">${statName}</span>
+                <div class="compare-stat-bar-bg right"><div class="stat-bar-fill" style="width: ${percentageB}%; background-color: ${colorB};"></div></div>
+            </div>`;
+        }
+        rowsHTML += '</div>';
+        return rowsHTML;
+    }
+
+    function getPokemonById(id) { return pokemonData.find(p => p.id === id); }
+    
+    function calculateWinner(pkA, pkB) { /* ... unverändert ... */ 
+        let effectivenessA = 1, effectivenessB = 1;
+        pkA.types.forEach(typeA => { pkB.types.forEach(typeB => { effectivenessA *= (typeEffectiveness[typeA]?.[typeB] ?? 1); }); });
+        pkB.types.forEach(typeB => { pkA.types.forEach(typeA => { effectivenessB *= (typeEffectiveness[typeB]?.[typeA] ?? 1); }); });
+        if (effectivenessA > effectivenessB) return pkA.id;
+        if (effectivenessB > effectivenessA) return pkB.id;
+        return null;
+    }
+    </script>
+</body>
+</html>
